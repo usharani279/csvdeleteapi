@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="ee99f21b-5a2e-4dec-aed4-66e827d20903" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="00ffc9ec-cbaf-468c-bc0b-1df40224e5a8" />
+	<flow name="csvdeleteapiFlow" doc:id="381b84d7-6ff4-48ca-b317-456fef8c200a" >
+		<http:listener doc:name="Listener" doc:id="5f0cfeb5-8527-4f5b-b7c5-f2857bb65d9b" config-ref="HTTP_Listener_config" path="/file" allowedMethods="POST"/>
+		<set-variable value="#[payload.directoryPath]" doc:name="Set Variable" doc:id="576b4876-0557-4ff8-a37a-a7741868fbd6" variableName="directoryPath"/>
+		<file:list doc:name="List" doc:id="52e02c0f-f71d-485b-8983-433999e93dbf" config-ref="File_Config" directoryPath="#[vars.directoryPath]"/>
+		<set-variable value="#[payload[0].attributes.fileName]" doc:name="Set Variable" doc:id="c1dcc193-f0c0-4f13-9141-6fe838987beb" variableName="filename"/>
+		<file:read doc:name="Read" doc:id="7f8eb96a-4075-4a25-bdca-0cdcd78d1f16" config-ref="File_Config" path="#[vars.directoryPath ++ '/' ++ vars.fileName]"/>
+		<ee:transform doc:name="Transform Message" doc:id="07f5ce47-a899-434c-8c64-fef6b4f73ea1" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:move doc:name="Move" doc:id="c8fa2632-cc05-4c9c-873c-a3432509c983" sourcePath="#[vars.directoryPath ++ '/' ++ vars.fileName]" config-ref="File_Config" targetPath="#[vars.directoryPath ++ '/output']"/>
+		<logger level="INFO" doc:name="Logger" doc:id="c2212e58-7767-4845-97ec-cbc8884faa53" message="#[payload]"/>
+		<file:delete doc:name="Delete" doc:id="03f457ca-8aad-4e61-9a8a-781858db41b1" config-ref="File_Config" path="#['G:/file']"/>
+		<logger level="INFO" doc:name="Logger" doc:id="5cec27b7-7360-4747-945f-a6398dd35d12" message='#["delete succussfully"]'/>
+	</flow>
+</mule>
